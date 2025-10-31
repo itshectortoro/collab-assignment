@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Note Taker</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 600px;
+      min-height: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 500px;
+    }
+
+    /* Initial State */
+    .initial-view {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 30px;
+      text-align: center;
+      min-height: 500px;
+    }
+
+    .icon-container {
+      margin-bottom: 30px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .note-icon {
+      font-size: 80px;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    }
+
+    h1 {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
+    .input-area {
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      background: white;
+      transition: box-shadow 0.3s;
+    }
+
+    textarea:focus {
+      outline: none;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+
+    .generate-btn {
+      background: white;
+      color: #667eea;
+    }
+
+    .generate-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .generate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .clear-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .clear-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Notes View */
+    .notes-view {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      background: white;
+    }
+
+    .notes-view.active {
+      display: flex;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .new-note-btn {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.3s;
+    }
+
+    .new-note-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .tabs {
+      display: flex;
+      background: #f5f5f5;
+      border-bottom: 2px solid #e0e0e0;
+      overflow-x: auto;
+      padding: 0 10px;
+    }
+
+    .tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 500;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+      white-space: nowrap;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab:hover {
+      color: #667eea;
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: white;
+    }
+
+    .tab-title {
+      cursor: text;
+    }
+
+    .tab-title:focus {
+      outline: 1px solid #667eea;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+
+    .delete-tab {
+      color: #999;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px;
+    }
+
+    .delete-tab:hover {
+      color: #e53e3e;
+    }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .note-section {
+      display: none;
+      animation: fadeIn 0.3s;
+    }
+
+    .note-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .note-section h3 {
+      color: #667eea;
+      font-size: 18px;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .note-section p {
+      line-height: 1.6;
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: white;
+    }
+
+    .spinner {
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      background: #fee;
+      color: #c33;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Initial View -->
+    <div class="initial-view" id="initialView">
+      <div class="icon-container">
+        <div class="note-icon">📝</div>
+      </div>
+      <h1>What would you like me to note-take today?</h1>
+      <div class="input-area">
+        <textarea 
+          id="inputText" 
+          placeholder="Paste your text here... (articles, transcripts, meeting notes, etc.)"
+        ></textarea>
+        <div class="button-group">
+          <button class="generate-btn" id="generateBtn">Generate Notes</button>
+          <button class="clear-btn" id="clearBtn">Clear</button>
+        </div>
+        <div id="errorMsg"></div>
+      </div>
+    </div>
+
+    <!-- Notes View -->
+    <div class="notes-view" id="notesView">
+      <div class="header">
+        <h2>Your AI Notes</h2>
+        <button class="new-note-btn" id="newNoteBtn">+ New Note</button>
+      </div>
+      <div class="tabs" id="tabsContainer"></div>
+      <div class="content" id="contentContainer"></div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading" id="loadingView" style="display: none;">
+      <div class="spinner"></div>
+      <p>AI is generating your notes...</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
